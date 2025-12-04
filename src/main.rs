@@ -18,8 +18,8 @@ impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let window = event_loop
             .create_window(Window::default_attributes())
-            .unwrap();
-        let vkcontext = VulkanContext::new(&window).unwrap();
+            .expect("Window not created");
+        let vkcontext = VulkanContext::new(&window).expect("Vulkan context not initializated");
         let engine = VoxelEngine { window, vkcontext };
         self.engine = Some(engine);
     }
