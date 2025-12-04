@@ -3,18 +3,25 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::{Window, WindowId};
 
+use crate::core::engine::VoxelEngine;
+use crate::vulkan::context::VulkanContext;
+
+mod core;
+mod vulkan;
+
 #[derive(Default)]
 struct App {
-    window: Option<Window>,
+    pub engine: Option<VoxelEngine>,
 }
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        self.window = Some(
-            event_loop
-                .create_window(Window::default_attributes())
-                .unwrap(),
-        );
+        let window = event_loop
+            .create_window(Window::default_attributes())
+            .unwrap();
+        let vkcontext = VulkanContext::new(&window).unwrap();
+        let engine = VoxelEngine { window, vkcontext };
+        self.engine = Some(engine);
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
@@ -28,7 +35,7 @@ impl ApplicationHandler for App {
 
                 // Draw.
 
-                self.window.as_ref().unwrap().request_redraw();
+                self.engine.as_ref().unwrap().window.request_redraw();
             }
             _ => (),
         }
