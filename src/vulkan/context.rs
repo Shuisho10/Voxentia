@@ -1,4 +1,7 @@
+use std::sync::Mutex;
+
 use ash::vk;
+use gpu_allocator::vulkan::{Allocator, AllocatorCreateDesc};
 use winit::{
     raw_window_handle::{HasDisplayHandle, HasWindowHandle},
     window::Window,
@@ -15,6 +18,7 @@ pub struct VulkanContext {
     pub command_pool: vk::CommandPool,
     pub surface: vk::SurfaceKHR,
     pub surface_loader: ash::khr::surface::Instance,
+    pub allocator: Mutex<Allocator>,
 }
 
 impl VulkanContext {
@@ -99,6 +103,19 @@ impl VulkanContext {
                 .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
             device.create_command_pool(&create_info, None)
         }?;
+
+        let allocator = {
+            let desc = AllocatorCreateDesc {
+                instance: instance.clone(),
+                device: device.clone(),
+                physical_device,
+                buffer_device_address: true,
+                debug_settings: Default::default(),
+                allocation_sizes: Default::default(),
+            };
+            Mutex::new(Allocator::new(&desc).map_err(|_| vk::Result::ERROR_INITIALIZATION_FAILED)?)
+        };
+
         Ok(Self {
             entry,
             instance,
@@ -109,6 +126,7 @@ impl VulkanContext {
             command_pool,
             surface,
             surface_loader,
+            allocator,
         })
     }
 }
