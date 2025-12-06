@@ -25,7 +25,8 @@ impl VoxelEngine {
             .create_window(Window::default_attributes())
             .expect("Window not created");
         let vkcontext = VulkanContext::new(&window).expect("Vulkan context not initializated");
-        let swapchain = SurfaceSwapchain::new(&vkcontext, 0, 0).expect("Swapchain not created");
+        let window_size = window.inner_size();
+        let swapchain = SurfaceSwapchain::new(&vkcontext, window_size.width, window_size.height).expect("Swapchain not created");
         let image_count = swapchain.images.len();
         let sync = SurfaceSync::new(&vkcontext.device, image_count)?;
         let pipeline = TestPipeline::new(&vkcontext, &swapchain).expect("Pipeline not created");
