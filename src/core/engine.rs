@@ -175,6 +175,14 @@ impl VoxelEngine {
                 &[barrier_to_compute],
             );
             device.cmd_bind_pipeline(cmd, vk::PipelineBindPoint::COMPUTE, self.pipeline.pipeline);
+            device.cmd_bind_descriptor_sets(
+                cmd,
+                vk::PipelineBindPoint::COMPUTE,
+                self.pipeline.layout,
+                0,
+                &[self.pipeline.descriptor_sets[image_index]],
+                &[],
+            );
             device.cmd_dispatch(cmd, x_groups, y_groups, 1);
             device.cmd_pipeline_barrier(
                 cmd,

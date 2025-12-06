@@ -20,16 +20,16 @@ impl TestPipeline {
                     .descriptor_type(vk::DescriptorType::STORAGE_IMAGE)
                     .descriptor_count(1)
                     .stage_flags(vk::ShaderStageFlags::COMPUTE),
-                vk::DescriptorSetLayoutBinding::default()
-                    .binding(1)
-                    .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-                    .descriptor_count(1)
-                    .stage_flags(vk::ShaderStageFlags::COMPUTE),
-                vk::DescriptorSetLayoutBinding::default()
-                    .binding(2)
-                    .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
-                    .descriptor_count(1)
-                    .stage_flags(vk::ShaderStageFlags::COMPUTE),
+                //vk::DescriptorSetLayoutBinding::default()
+                //    .binding(1)
+                //    .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+                //    .descriptor_count(1)
+                //    .stage_flags(vk::ShaderStageFlags::COMPUTE),
+                //vk::DescriptorSetLayoutBinding::default()
+                //    .binding(2)
+                //    .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+                //    .descriptor_count(1)
+                //    .stage_flags(vk::ShaderStageFlags::COMPUTE),
             ];
 
             let layout_info = vk::DescriptorSetLayoutCreateInfo::default().bindings(&bindings);
