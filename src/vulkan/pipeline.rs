@@ -79,7 +79,6 @@ impl TestPipeline {
         }
 
         let image_len = swapchain.images.len();
-
         let descriptor_pool = unsafe {
             let pool_sizes = [
                 vk::DescriptorPoolSize {
@@ -113,15 +112,19 @@ impl TestPipeline {
             context.device.allocate_descriptor_sets(&allocate_info)?
         };
 
-
-        Ok(Self {
+        let test_pipeline = Self {
             pipeline,
             layout,
             descriptor_set_layout,
             descriptor_pool,
             descriptor_sets,
-        })
+        };
+
+        test_pipeline.update_descriptors(context, swapchain);
+
+        Ok(test_pipeline)
     }
+
     pub fn update_descriptors(&self, context: &VulkanContext, swapchain: &SurfaceSwapchain){
         for (i, descriptor_set) in self.descriptor_sets.iter().enumerate().take(swapchain.images.len()) {
             let image_info = [vk::DescriptorImageInfo::default()
