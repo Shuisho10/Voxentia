@@ -121,7 +121,27 @@ impl VoxelEngine {
                 .destroy_swapchain(self.swapchain.swapchain, None);
             let new_swapchain = SurfaceSwapchain::new(&self.vkcontext, width, height)?;
             self.swapchain = new_swapchain;
-            // TODO recreate sync objects and command buffers if images.len() changed
+            
+            let sync_len = self.sync.in_flight_fences.len(); 
+            let swapchain_len = self.swapchain.images.len();
+
+            if sync_len != swapchain_len {
+                for i in 0..sync_len {
+                    device.destroy_fence(self.sync.in_flight_fences[i], None);
+                    device.destroy_semaphore(self.sync.image_available_semaphores[i], None);
+                    device.destroy_semaphore(self.sync.render_finished_semaphores[i], None);
+                }
+                device.free_command_buffers(self.command_pool, self.command_buffers.as_slice());
+                self.sync = SurfaceSync::new(device, swapchain_len)?;
+                self.command_buffers = {
+                    let allocate_info = vk::CommandBufferAllocateInfo::default()
+                        .command_pool(self.command_pool)
+                        .level(vk::CommandBufferLevel::PRIMARY)
+                        .command_buffer_count(swapchain_len as u32);
+                    self.vkcontext.device.allocate_command_buffers(&allocate_info)?
+                };
+            }
+            self.sync.current_frame = 0;
             self.pipeline
                 .update_descriptors(&self.vkcontext, &self.swapchain);
         }
