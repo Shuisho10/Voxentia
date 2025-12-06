@@ -1,12 +1,9 @@
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
-use winit::window::{Window, WindowId};
+use winit::window::WindowId;
 
 use crate::core::engine::VoxelEngine;
-use crate::vulkan::context::VulkanContext;
-use crate::vulkan::pipeline::TestPipeline;
-use crate::vulkan::swapchain::SurfaceSwapchain;
 
 mod core;
 mod vulkan;
@@ -18,18 +15,7 @@ struct App {
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let window = event_loop
-            .create_window(Window::default_attributes())
-            .expect("Window not created");
-        let vkcontext = VulkanContext::new(&window).expect("Vulkan context not initializated");
-        let swapchain = SurfaceSwapchain::new(&vkcontext, 0, 0).expect("Swapchain not created");
-        let pipeline = TestPipeline::new(&vkcontext, &swapchain).expect("Pipeline not created");
-        let engine = VoxelEngine {
-            window,
-            vkcontext,
-            swapchain,
-            pipeline,
-        };
+        let engine = VoxelEngine::new(event_loop).expect("Voxel engine initialization failed");
         self.engine = Some(engine);
     }
 
@@ -42,8 +28,7 @@ impl ApplicationHandler for App {
             WindowEvent::RedrawRequested => {
                 // Redraw the application.
 
-                // Draw.
-
+                self.engine.as_mut().unwrap().draw_frame().expect("Unable to draw frame");
                 self.engine.as_ref().unwrap().window.request_redraw();
             }
             _ => (),

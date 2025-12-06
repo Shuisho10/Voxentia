@@ -2,6 +2,7 @@ use ash::vk;
 
 use crate::vulkan::context::VulkanContext;
 
+#[allow(unused)]
 pub struct SurfaceSync {
     pub image_available_semaphores: Vec<vk::Semaphore>,
     pub render_finished_semaphores: Vec<vk::Semaphore>,
@@ -9,6 +10,7 @@ pub struct SurfaceSync {
     pub current_frame: usize,
 }
 
+#[allow(unused)]
 pub struct SurfaceSwapchain {
     pub swapchain_loader: ash::khr::swapchain::Device,
     pub swapchain: vk::SwapchainKHR,
