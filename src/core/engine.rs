@@ -84,7 +84,7 @@ impl VoxelEngine {
                 .signal_semaphores(&signal_semaphores)
                 .command_buffers(&command_buffers);
             let present_info = vk::PresentInfoKHR::default()
-                .wait_semaphores(&wait_semaphores)
+                .wait_semaphores(&signal_semaphores)
                 .swapchains(&swapchains)
                 .image_indices(&image_indices);
 
