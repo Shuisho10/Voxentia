@@ -5,6 +5,7 @@ use winit::window::{Window, WindowId};
 
 use crate::core::engine::VoxelEngine;
 use crate::vulkan::context::VulkanContext;
+use crate::vulkan::pipeline::TestPipeline;
 use crate::vulkan::swapchain::SurfaceSwapchain;
 
 mod core;
@@ -22,7 +23,13 @@ impl ApplicationHandler for App {
             .expect("Window not created");
         let vkcontext = VulkanContext::new(&window).expect("Vulkan context not initializated");
         let swapchain = SurfaceSwapchain::new(&vkcontext, 0, 0).expect("Swapchain not created");
-        let engine = VoxelEngine { window, vkcontext, swapchain };
+        let pipeline = TestPipeline::new(&vkcontext, &swapchain).expect("Pipeline not created");
+        let engine = VoxelEngine {
+            window,
+            vkcontext,
+            swapchain,
+            pipeline,
+        };
         self.engine = Some(engine);
     }
 
