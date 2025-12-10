@@ -1,7 +1,7 @@
 #version 450
-layout (local_size_x = 16, local_size_y = 16) in;
+layout(local_size_x = 16, local_size_y = 16) in;
 
-layout (binding = 0, rgba8) uniform image2D resultImage;
+layout(binding = 0, rgba8) uniform writeonly image2D resultImage;
 
 layout(binding = 1) uniform Camera {
     mat4 viewInverse;
@@ -9,41 +9,100 @@ layout(binding = 1) uniform Camera {
     vec4 position;
 } cam;
 
-layout (binding = 2) readonly buffer voxelGrid { 
-    uint raw[];
-} grid;
+layout(binding = 2, std430) readonly buffer VoxelBuffer {
+    uint data[]; 
+} voxels;
 
-int pos2index(ivec3 pos) {
-    return pos.x + pos.y * 32 + pos.z * 1024;
+const int WORLD_SIZE = 64;
+
+bool isSolid(ivec3 p) {
+    if (p.x < 0 || p.y < 0 || p.z < 0 || 
+        p.x >= WORLD_SIZE || p.y >= WORLD_SIZE || p.z >= WORLD_SIZE) {
+        return false;
+    }
+    int index = p.x + (p.y * WORLD_SIZE) + (p.z * WORLD_SIZE * WORLD_SIZE);
+    
+    return voxels.data[index] > 0;
 }
 
 void main() {
     ivec2 screen_size = imageSize(resultImage);
-    ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
-    if (pixel_coords.x >= screen_size.x || pixel_coords.y >= screen_size.y) return;
+    ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+    if (pixel.x >= screen_size.x || pixel.y >= screen_size.y) return;
 
-    vec2 uv = (vec2(pixel_coords) / vec2(screen_size)) * 2.0 - 1.0;
-
+    vec2 uv = (vec2(pixel) / vec2(screen_size)) * 2.0 - 1.0;
     vec4 target = cam.projInverse * vec4(uv.x, uv.y, 1.0, 1.0);
     vec3 rayDir = normalize((cam.viewInverse * vec4(normalize(target.xyz), 0.0)).xyz);
-    vec3 rayOrigin = cam.position.xyz;
+    vec3 rayPos = cam.position.xyz;
 
-    vec3 color = vec3(0.1); 
+    vec3 boxMin = vec3(0.0);
+    vec3 boxMax = vec3(WORLD_SIZE);
     
-    if (rayDir.y < 0.0) {
-        float t = -(rayOrigin.y + 1.0) / rayDir.y;
-        if (t > 0.0) {
-            vec3 hit = rayOrigin + rayDir * t;
-            float tile = mod(floor(hit.x) + floor(hit.z), 2.0);
-            color = vec3(0.5 + tile * 0.5); 
-            
-            color *= exp(-0.1 * t);
+    vec3 t1 = (boxMin - rayPos) / rayDir;
+    vec3 t2 = (boxMax - rayPos) / rayDir;
+    vec3 tMin = min(t1, t2);
+    vec3 tMax = max(t1, t2);
+    float tNear = max(max(tMin.x, tMin.y), tMin.z);
+    float tFar = min(min(tMax.x, tMax.y), tMax.z);
+
+    vec3 color = vec3(0.1, 0.1, 0.15); 
+
+    if (tNear < tFar && tFar > 0.0) {
+        float t = max(0.0, tNear);
+        vec3 currentPos = rayPos + rayDir * t;
+        
+        currentPos += rayDir * 0.001; 
+
+        ivec3 mapPos = ivec3(floor(currentPos));
+        vec3 deltaDist = abs(vec3(1.0) / rayDir);
+        ivec3 rayStep = ivec3(sign(rayDir));
+        vec3 sideDist = (sign(rayDir) * (vec3(mapPos) - currentPos) + (sign(rayDir) * 0.5) + 0.5) * deltaDist;
+        
+        int side = 0;
+        
+        for (int i = 0; i < 200; i++) {
+            if (mapPos.x < 0 || mapPos.x >= WORLD_SIZE ||
+                mapPos.y < 0 || mapPos.y >= WORLD_SIZE ||
+                mapPos.z < 0 || mapPos.z >= WORLD_SIZE) break;
+
+            if (isSolid(mapPos)) {
+                vec3 normal = vec3(0.0);
+                if (side == 0) normal.x = -rayStep.x;
+                else if (side == 1) normal.y = -rayStep.y;
+                else normal.z = -rayStep.z;
+                
+                color = vec3(0.8, 0.5, 0.3);
+                if (side == 1) color = vec3(0.3, 0.8, 0.3); 
+                
+                float diff = max(dot(normal, normalize(vec3(0.5, 1.0, 0.3))), 0.2);
+                color *= diff;
+                
+                break;
+            }
+
+            if (sideDist.x < sideDist.y) {
+                if (sideDist.x < sideDist.z) {
+                    sideDist.x += deltaDist.x;
+                    mapPos.x += rayStep.x;
+                    side = 0;
+                } else {
+                    sideDist.z += deltaDist.z;
+                    mapPos.z += rayStep.z;
+                    side = 2;
+                }
+            } else {
+                if (sideDist.y < sideDist.z) {
+                    sideDist.y += deltaDist.y;
+                    mapPos.y += rayStep.y;
+                    side = 1;
+                } else {
+                    sideDist.z += deltaDist.z;
+                    mapPos.z += rayStep.z;
+                    side = 2;
+                }
+            }
         }
     }
-    if (pos2index(ivec3(screen_size.xy, 16)) != 0) {
-        imageStore(resultImage, pixel_coords, vec4(color, 1.0));
-    } else {
-        imageStore(resultImage, pixel_coords, vec4(1.0, 0.0, 0.0, 1.0));
-    }
-}
 
+    imageStore(resultImage, pixel, vec4(color, 1.0));
+}
