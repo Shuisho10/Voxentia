@@ -1,3 +1,4 @@
+use nalgebra::Vector3;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
@@ -26,6 +27,7 @@ impl ApplicationHandler for App {
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
+                self.engine.as_mut().unwrap().camera.input_move(Vector3::z(), 0.0016);
                 self.engine.as_mut().unwrap().draw_frame().expect("Unable to draw frame");
                 self.engine.as_ref().unwrap().window.request_redraw();
             },
@@ -33,6 +35,7 @@ impl ApplicationHandler for App {
                 if physical_size.width == 0 || physical_size.height == 0 {return;}
                 if let Some(engine) = self.engine.as_mut() {
                     engine.rebuild_swapchain(physical_size.width, physical_size.height).expect("Unable to recreate swapchain");
+                    engine.camera.update_aspect(physical_size.width, physical_size.height);
                 }
                 self.engine.as_ref().unwrap().window.request_redraw();
             },
