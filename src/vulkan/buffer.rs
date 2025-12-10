@@ -26,6 +26,7 @@ impl Buffer {
                 .sharing_mode(vk::SharingMode::EXCLUSIVE);
 
             let buffer = device.create_buffer(&buffer_info, None)?;
+            context.set_object_name(buffer, name)?;
 
             let mem_reqs = device.get_buffer_memory_requirements(buffer);
 

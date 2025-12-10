@@ -21,6 +21,7 @@ pub struct VulkanContext {
     pub surface_loader: ash::khr::surface::Instance,
     pub allocator: Mutex<Allocator>,
     pub debug_utils_loader: ash::ext::debug_utils::Instance,
+    pub debug_utils: ash::ext::debug_utils::Device,
     pub debug_call_back: vk::DebugUtilsMessengerEXT,
 }
 
@@ -74,6 +75,7 @@ impl VulkanContext {
 
         let debug_call_back =
             unsafe { debug_utils_loader.create_debug_utils_messenger(&debug_info, None)? };
+        
         let surface_loader = ash::khr::surface::Instance::new(&entry, &instance);
         let surface = unsafe {
             ash_window::create_surface(&entry, &instance, display_handle, window_handle, None)
@@ -123,6 +125,7 @@ impl VulkanContext {
                 .push_next(&mut bda_features);
             instance.create_device(physical_device, &create_info, None)
         }?;
+        let debug_utils = ash::ext::debug_utils::Device::new(&instance,&device);
         let compute_queue = unsafe { device.get_device_queue(compute_queue_fi, 0) };
         let command_pool = unsafe {
             let create_info = vk::CommandPoolCreateInfo::default()
@@ -155,8 +158,26 @@ impl VulkanContext {
             surface_loader,
             allocator,
             debug_utils_loader,
+            debug_utils,
             debug_call_back,
         })
+    }
+
+    pub fn set_object_name<T>(&self, object_handle: T, name: &str) -> Result<(), vk::Result>
+    where
+        T: vk::Handle,
+    {
+        let c_name = std::ffi::CString::new(name).unwrap();
+
+        let name_info = vk::DebugUtilsObjectNameInfoEXT::default()
+            .object_handle(object_handle)
+            .object_name(&c_name);
+
+        unsafe {
+            self
+                .debug_utils
+                .set_debug_utils_object_name(&name_info)
+        }
     }
 }
 

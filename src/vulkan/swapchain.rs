@@ -126,6 +126,7 @@ impl SurfaceSwapchain {
         let image_views = images
             .iter()
             .map(|&image| {
+                context.set_object_name(image, "Presentable Image")?;
                 let create_info = vk::ImageViewCreateInfo::default()
                     .image(image)
                     .view_type(vk::ImageViewType::TYPE_2D)
