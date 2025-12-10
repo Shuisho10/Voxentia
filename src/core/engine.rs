@@ -34,7 +34,7 @@ impl VoxelEngine {
         let swapchain = SurfaceSwapchain::new(&vkcontext, window_size.width, window_size.height)
             .expect("Swapchain not created");
         let image_count = swapchain.images.len();
-        let sync = SurfaceSync::new(&vkcontext.device, image_count)?;
+        let sync = SurfaceSync::new(&vkcontext, image_count)?;
         let aspect = window_size.width as f32 / window_size.height as f32;
         let camera = Camera::new(aspect);
         let camera_buffer = Buffer::new(
@@ -163,7 +163,7 @@ impl VoxelEngine {
                     device.destroy_semaphore(self.sync.render_finished_semaphores[i], None);
                 }
                 device.free_command_buffers(self.command_pool, self.command_buffers.as_slice());
-                self.sync = SurfaceSync::new(device, swapchain_len)?;
+                self.sync = SurfaceSync::new(&self.vkcontext, swapchain_len)?;
                 self.command_buffers = {
                     let allocate_info = vk::CommandBufferAllocateInfo::default()
                         .command_pool(self.command_pool)

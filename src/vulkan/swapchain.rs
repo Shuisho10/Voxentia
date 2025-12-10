@@ -21,7 +21,7 @@ pub struct SurfaceSwapchain {
 }
 
 impl SurfaceSync {
-    pub fn new(device: &ash::Device, count: usize) -> Result<Self, vk::Result> {
+    pub fn new(context: &VulkanContext, count: usize) -> Result<Self, vk::Result> {
         // TODO better allocation
         let semaphore_info = vk::SemaphoreCreateInfo::default();
         let fence_info = vk::FenceCreateInfo::default().flags(vk::FenceCreateFlags::SIGNALED);
@@ -31,9 +31,15 @@ impl SurfaceSync {
 
         for _ in 0..count {
             unsafe {
-                image_available_semaphores.push(device.create_semaphore(&semaphore_info, None)?);
-                render_finished_semaphores.push(device.create_semaphore(&semaphore_info, None)?);
-                in_flight_fences.push(device.create_fence(&fence_info, None)?);
+                let semaphore = context.device.create_semaphore(&semaphore_info, None)?;
+                context.set_object_name(semaphore, "Image available")?;
+                image_available_semaphores.push(semaphore);
+                let semaphore = context.device.create_semaphore(&semaphore_info, None)?;
+                context.set_object_name(semaphore, "Render finished")?;
+                render_finished_semaphores.push(semaphore);
+                let fence = context.device.create_fence(&fence_info, None)?;
+                context.set_object_name(fence, "In flight")?;
+                in_flight_fences.push(fence);
             }
         }
         Ok(Self {
