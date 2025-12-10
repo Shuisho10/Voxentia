@@ -85,6 +85,12 @@ impl VulkanContext {
                 })
                 .ok_or(vk::Result::ERROR_DEVICE_LOST)?
         };
+        let mut bda_features = vk::PhysicalDeviceBufferDeviceAddressFeatures::default()
+            .buffer_device_address(true)
+            .buffer_device_address_capture_replay(false)
+            .buffer_device_address_multi_device(false);
+
+
         let device = unsafe {
             let queue_priorities = [1.0];
             let queue_infos = [vk::DeviceQueueCreateInfo::default()
@@ -93,7 +99,8 @@ impl VulkanContext {
             let extensions = [ash::khr::swapchain::NAME.as_ptr()];
             let create_info = vk::DeviceCreateInfo::default()
                 .queue_create_infos(&queue_infos)
-                .enabled_extension_names(&extensions);
+                .enabled_extension_names(&extensions)
+                .push_next(&mut bda_features);
             instance.create_device(physical_device, &create_info, None)
         }?;
         let compute_queue = unsafe { device.get_device_queue(compute_queue_fi, 0) };

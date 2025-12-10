@@ -26,8 +26,6 @@ impl ApplicationHandler for App {
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
-                // Redraw the application.
-
                 self.engine.as_mut().unwrap().draw_frame().expect("Unable to draw frame");
                 self.engine.as_ref().unwrap().window.request_redraw();
             },

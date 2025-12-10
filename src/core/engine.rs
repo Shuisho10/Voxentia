@@ -1,7 +1,10 @@
 use ash::vk;
+use gpu_allocator::MemoryLocation;
 use winit::{event_loop::ActiveEventLoop, window::Window};
 
 use crate::vulkan::{
+    buffer::Buffer,
+    camera::{Camera, CameraUniform},
     context::VulkanContext,
     pipeline::TestPipeline,
     swapchain::{SurfaceSwapchain, SurfaceSync},
@@ -17,6 +20,8 @@ pub struct VoxelEngine {
     pub sync: SurfaceSync,
     pub command_pool: vk::CommandPool,
     pub command_buffers: Vec<vk::CommandBuffer>,
+    pub camera: Camera,
+    pub camera_buffer: Buffer,
 }
 
 impl VoxelEngine {
@@ -26,10 +31,21 @@ impl VoxelEngine {
             .expect("Window not created");
         let vkcontext = VulkanContext::new(&window).expect("Vulkan context not initializated");
         let window_size = window.inner_size();
-        let swapchain = SurfaceSwapchain::new(&vkcontext, window_size.width, window_size.height).expect("Swapchain not created");
+        let swapchain = SurfaceSwapchain::new(&vkcontext, window_size.width, window_size.height)
+            .expect("Swapchain not created");
         let image_count = swapchain.images.len();
         let sync = SurfaceSync::new(&vkcontext.device, image_count)?;
-        let pipeline = TestPipeline::new(&vkcontext, &swapchain).expect("Pipeline not created");
+        let aspect = window_size.width as f32 / window_size.height as f32;
+        let camera = Camera::new(aspect);
+        let camera_buffer = Buffer::new(
+            &vkcontext,
+            std::mem::size_of::<CameraUniform>() as u64,
+            vk::BufferUsageFlags::UNIFORM_BUFFER,
+            MemoryLocation::CpuToGpu,
+            "Camera buffer",
+        )
+        .expect("Camera buffer not created");
+        let pipeline = TestPipeline::new(&vkcontext, &swapchain, &camera_buffer).expect("Pipeline not created");
         let command_pool = unsafe {
             let create_info = vk::CommandPoolCreateInfo::default()
                 .queue_family_index(vkcontext.compute_queue_fi)
@@ -52,6 +68,8 @@ impl VoxelEngine {
             sync,
             command_pool,
             command_buffers,
+            camera,
+            camera_buffer,
         })
     }
 
@@ -121,8 +139,8 @@ impl VoxelEngine {
                 .destroy_swapchain(self.swapchain.swapchain, None);
             let new_swapchain = SurfaceSwapchain::new(&self.vkcontext, width, height)?;
             self.swapchain = new_swapchain;
-            
-            let sync_len = self.sync.in_flight_fences.len(); 
+
+            let sync_len = self.sync.in_flight_fences.len();
             let swapchain_len = self.swapchain.images.len();
 
             if sync_len != swapchain_len {
@@ -138,12 +156,14 @@ impl VoxelEngine {
                         .command_pool(self.command_pool)
                         .level(vk::CommandBufferLevel::PRIMARY)
                         .command_buffer_count(swapchain_len as u32);
-                    self.vkcontext.device.allocate_command_buffers(&allocate_info)?
+                    self.vkcontext
+                        .device
+                        .allocate_command_buffers(&allocate_info)?
                 };
             }
             self.sync.current_frame = 0;
             self.pipeline
-                .update_descriptors(&self.vkcontext, &self.swapchain);
+                .update_descriptors(&self.vkcontext, &self.swapchain, &self.camera_buffer);
         }
         Ok(())
     }
