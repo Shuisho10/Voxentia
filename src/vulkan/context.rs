@@ -19,6 +19,8 @@ pub struct VulkanContext {
     pub surface: vk::SurfaceKHR,
     pub surface_loader: ash::khr::surface::Instance,
     pub allocator: Mutex<Allocator>,
+    pub debug_utils_loader: ash::ext::debug_utils::Instance,
+    pub debug_call_back: vk::DebugUtilsMessengerEXT,
 }
 
 impl VulkanContext {
@@ -42,8 +44,9 @@ impl VulkanContext {
                 .engine_version(vk::make_api_version(0, 0, 1, 0))
                 .application_name(c"Voxentia Example")
                 .application_version(vk::make_api_version(0, 0, 1, 0));
-            let extension_names =
+            let mut extension_names =
                 ash_window::enumerate_required_extensions(display_handle)?.to_vec();
+            extension_names.push(ash::ext::debug_utils::NAME.as_ptr());
             let validation_layers = [c"VK_LAYER_KHRONOS_validation".as_ptr()];
             let create_info = vk::InstanceCreateInfo::default()
                 .application_info(&app_info)
@@ -53,6 +56,23 @@ impl VulkanContext {
                 .create_instance(&create_info, None)
                 .map_err(|_| vk::Result::ERROR_INITIALIZATION_FAILED)?
         };
+
+        let debug_utils_loader = ash::ext::debug_utils::Instance::new(&entry, &instance);
+
+        let debug_info = vk::DebugUtilsMessengerCreateInfoEXT::default()
+            .message_severity(
+                vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
+                    | vk::DebugUtilsMessageSeverityFlagsEXT::WARNING,
+            )
+            .message_type(
+                vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
+                    | vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION
+                    | vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE,
+            )
+            .pfn_user_callback(Some(vulkan_debug_callback));
+
+        let debug_call_back =
+            unsafe { debug_utils_loader.create_debug_utils_messenger(&debug_info, None)? };
         let surface_loader = ash::khr::surface::Instance::new(&entry, &instance);
         let surface = unsafe {
             ash_window::create_surface(&entry, &instance, display_handle, window_handle, None)
@@ -89,7 +109,6 @@ impl VulkanContext {
             .buffer_device_address(true)
             .buffer_device_address_capture_replay(false)
             .buffer_device_address_multi_device(false);
-
 
         let device = unsafe {
             let queue_priorities = [1.0];
@@ -134,6 +153,26 @@ impl VulkanContext {
             surface,
             surface_loader,
             allocator,
+            debug_utils_loader,
+            debug_call_back,
         })
     }
+}
+
+extern "system" fn vulkan_debug_callback(
+    message_severity: vk::DebugUtilsMessageSeverityFlagsEXT,
+    message_type: vk::DebugUtilsMessageTypeFlagsEXT,
+    p_callback_data: *const vk::DebugUtilsMessengerCallbackDataEXT,
+    _user_data: *mut std::ffi::c_void,
+) -> vk::Bool32 {
+    unsafe {
+        let callback_data = *p_callback_data;
+        let message = std::ffi::CStr::from_ptr(callback_data.p_message).to_string_lossy();
+
+        println!(
+            "[Vulkan] {:?} {:?}: {}",
+            message_severity, message_type, message
+        );
+    }
+    vk::FALSE
 }
