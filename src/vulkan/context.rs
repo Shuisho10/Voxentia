@@ -29,8 +29,7 @@ impl VulkanContext {
     pub fn new(window: &Window) -> Result<Self, vk::Result> {
         // TODO allocation callbacks
         // TODO better physical device picker
-        let entry =
-            unsafe { ash::Entry::load().map_err(|_| vk::Result::ERROR_INITIALIZATION_FAILED)? };
+        let entry = ash::Entry::linked();
         let display_handle = window
             .display_handle()
             .map_err(|_| vk::Result::ERROR_INITIALIZATION_FAILED)?
@@ -75,7 +74,7 @@ impl VulkanContext {
 
         let debug_call_back =
             unsafe { debug_utils_loader.create_debug_utils_messenger(&debug_info, None)? };
-        
+
         let surface_loader = ash::khr::surface::Instance::new(&entry, &instance);
         let surface = unsafe {
             ash_window::create_surface(&entry, &instance, display_handle, window_handle, None)
@@ -125,7 +124,7 @@ impl VulkanContext {
                 .push_next(&mut bda_features);
             instance.create_device(physical_device, &create_info, None)
         }?;
-        let debug_utils = ash::ext::debug_utils::Device::new(&instance,&device);
+        let debug_utils = ash::ext::debug_utils::Device::new(&instance, &device);
         let compute_queue = unsafe { device.get_device_queue(compute_queue_fi, 0) };
         let command_pool = unsafe {
             let create_info = vk::CommandPoolCreateInfo::default()
@@ -173,11 +172,42 @@ impl VulkanContext {
             .object_handle(object_handle)
             .object_name(&c_name);
 
+        unsafe { self.debug_utils.set_debug_utils_object_name(&name_info) }
+    }
+
+    pub fn immediate_submit<F>(&self, function: F) -> Result<(), vk::Result>
+    where
+        F: FnOnce(vk::CommandBuffer),
+    {
         unsafe {
-            self
-                .debug_utils
-                .set_debug_utils_object_name(&name_info)
+            let alloc_info = vk::CommandBufferAllocateInfo::default()
+                .level(vk::CommandBufferLevel::PRIMARY)
+                .command_pool(self.command_pool)
+                .command_buffer_count(1);
+
+            let command_buffer = self.device.allocate_command_buffers(&alloc_info)?[0];
+            let begin_info = vk::CommandBufferBeginInfo::default()
+                .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
+
+            self.device
+                .begin_command_buffer(command_buffer, &begin_info)?;
+
+            function(command_buffer);
+
+            self.device.end_command_buffer(command_buffer)?;
+
+            let command_buffers = [command_buffer];
+            let submits = [vk::SubmitInfo::default().command_buffers(&command_buffers)];
+
+            self.device
+                .queue_submit(self.compute_queue, &submits, vk::Fence::null())?;
+
+            self.device.queue_wait_idle(self.compute_queue)?;
+
+            self.device
+                .free_command_buffers(self.command_pool, &command_buffers);
         }
+        Ok(())
     }
 }
 

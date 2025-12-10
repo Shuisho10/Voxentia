@@ -16,6 +16,7 @@ impl TestPipeline {
         context: &VulkanContext,
         swapchain: &SurfaceSwapchain,
         camera_buffer: &Buffer,
+        world_buffer: &Buffer,
     ) -> Result<Self, vk::Result> {
         let descriptor_set_layout = unsafe {
             let bindings = [
@@ -29,11 +30,11 @@ impl TestPipeline {
                     .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
                     .descriptor_count(1)
                     .stage_flags(vk::ShaderStageFlags::COMPUTE),
-                //vk::DescriptorSetLayoutBinding::default()
-                //    .binding(2)
-                //    .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
-                //    .descriptor_count(1)
-                //    .stage_flags(vk::ShaderStageFlags::COMPUTE),
+                vk::DescriptorSetLayoutBinding::default()
+                    .binding(2)
+                    .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+                    .descriptor_count(1)
+                    .stage_flags(vk::ShaderStageFlags::COMPUTE),
             ];
 
             let layout_info = vk::DescriptorSetLayoutCreateInfo::default().bindings(&bindings);
@@ -129,7 +130,7 @@ impl TestPipeline {
             descriptor_sets,
         };
 
-        test_pipeline.update_descriptors(context, swapchain, camera_buffer);
+        test_pipeline.update_descriptors(context, swapchain, camera_buffer, world_buffer);
 
         Ok(test_pipeline)
     }
@@ -139,6 +140,7 @@ impl TestPipeline {
         context: &VulkanContext,
         swapchain: &SurfaceSwapchain,
         camera_buffer: &Buffer,
+        world_buffer: &Buffer,
     ) {
         for (i, descriptor_set) in self
             .descriptor_sets
@@ -157,7 +159,7 @@ impl TestPipeline {
                 .descriptor_type(vk::DescriptorType::STORAGE_IMAGE)
                 .image_info(&image_info);
 
-            let buffer_info = [vk::DescriptorBufferInfo::default()
+            let camera_buffer_info = [vk::DescriptorBufferInfo::default()
                 .buffer(camera_buffer.buffer)
                 .offset(0)
                 .range(vk::WHOLE_SIZE)];
@@ -166,19 +168,22 @@ impl TestPipeline {
                 .dst_binding(1)
                 .descriptor_count(1)
                 .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-                .buffer_info(&buffer_info);
-            //let buffer_info = vk::DescriptorBufferInfo::default()
-            //    .buffer(camera_buffer)
-            //    .offset(0)
-            //    .range(vk::WHOLE_SIZE);
-            //let write_camera = vk::WriteDescriptorSet::default()
-            //    .dst_set(*descriptor_set)
-            //    .dst_binding(1)
-            //    .descriptor_count(1)
-            //    .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-            //    .buffer_info(&buffer_info);
+                .buffer_info(&camera_buffer_info);
+
+            let world_buffer_info = [vk::DescriptorBufferInfo::default()
+                .buffer(world_buffer.buffer)
+                .offset(0)
+                .range(vk::WHOLE_SIZE)];
+            let write_world = vk::WriteDescriptorSet::default()
+                .dst_set(*descriptor_set)
+                .dst_binding(2)
+                .descriptor_count(1)
+                .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+                .buffer_info(&world_buffer_info);
             unsafe {
-                context.device.update_descriptor_sets(&[write_image, write_camera], &[]);
+                context
+                    .device
+                    .update_descriptor_sets(&[write_image, write_camera, write_world], &[]);
             }
         }
     }

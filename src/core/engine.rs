@@ -49,7 +49,8 @@ impl VoxelEngine {
             "Camera",
         )
         .expect("Camera buffer not created");
-        let pipeline = TestPipeline::new(&vkcontext, &swapchain, &camera_buffer)
+        let (_, world_buffer) = WorldData::new(&vkcontext)?;
+        let pipeline = TestPipeline::new(&vkcontext, &swapchain, &camera_buffer, &world_buffer)
             .expect("Pipeline not created");
         let command_pool = unsafe {
             let create_info = vk::CommandPoolCreateInfo::default()
@@ -64,7 +65,6 @@ impl VoxelEngine {
                 .command_buffer_count(image_count as u32);
             vkcontext.device.allocate_command_buffers(&allocate_info)?
         };
-        let (_, world_buffer) = WorldData::new(&vkcontext)?;
         Ok(Self {
             frame: 0,
             window,
@@ -85,15 +85,7 @@ impl VoxelEngine {
         let current_frame = self.sync.current_frame;
 
         let ubo_data = self.camera.get_uniform();
-        unsafe {
-            if let Some(mapped_ptr) = self.camera_buffer.allocation.mapped_ptr() {
-                std::ptr::copy_nonoverlapping(
-                    &ubo_data as *const CameraUniform,
-                    mapped_ptr.as_ptr() as *mut CameraUniform,
-                    1,
-                );
-            }
-        }
+        self.camera_buffer.update_item(ubo_data)?;
 
         unsafe {
             device.wait_for_fences(&[self.sync.in_flight_fences[current_frame]], true, u64::MAX)?;
@@ -181,8 +173,12 @@ impl VoxelEngine {
                 };
             }
             self.sync.current_frame = 0;
-            self.pipeline
-                .update_descriptors(&self.vkcontext, &self.swapchain, &self.camera_buffer);
+            self.pipeline.update_descriptors(
+                &self.vkcontext,
+                &self.swapchain,
+                &self.camera_buffer,
+                &self.world_buffer,
+            );
         }
         Ok(())
     }

@@ -9,8 +9,13 @@ layout(binding = 1) uniform Camera {
     vec4 position;
 } cam;
 
-//layout (binding = 2) uniform usampler3D voxelGrid;
+layout (binding = 2) readonly buffer voxelGrid { 
+    uint raw[];
+} grid;
 
+int pos2index(ivec3 pos) {
+    return pos.x + pos.y * 32 + pos.z * 1024;
+}
 
 void main() {
     ivec2 screen_size = imageSize(resultImage);
@@ -35,6 +40,10 @@ void main() {
             color *= exp(-0.1 * t);
         }
     }
-
-    imageStore(resultImage, pixel_coords, vec4(color, 1.0));
+    if (pos2index(ivec3(screen_size.xy, 16)) != 0) {
+        imageStore(resultImage, pixel_coords, vec4(color, 1.0));
+    } else {
+        imageStore(resultImage, pixel_coords, vec4(1.0, 0.0, 0.0, 1.0));
+    }
 }
+
