@@ -2,6 +2,7 @@ use ash::vk;
 use gpu_allocator::vulkan::{Allocation, AllocationCreateDesc,};
 use gpu_allocator::MemoryLocation;
 
+#[allow(unused)]
 pub struct Buffer {
     pub buffer: vk::Buffer,
     pub allocation: Allocation,

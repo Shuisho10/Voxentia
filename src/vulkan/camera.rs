@@ -8,6 +8,7 @@ pub struct CameraUniform {
     pub position: Vector4<f32>,
 }
 
+#[allow(unused)]
 pub struct Camera {
     pub position: Point3<f32>,
     pub forward: Vector3<f32>,
