@@ -1,7 +1,6 @@
 use ash::vk;
-use gpu_allocator::vulkan::{Allocation, AllocationCreateDesc, Allocator};
+use gpu_allocator::vulkan::{Allocation, AllocationCreateDesc,};
 use gpu_allocator::MemoryLocation;
-use std::sync::{Arc, Mutex};
 
 pub struct Buffer {
     pub buffer: vk::Buffer,
@@ -29,7 +28,7 @@ impl Buffer {
 
             let mem_reqs = device.get_buffer_memory_requirements(buffer);
 
-            let mut allocator = context.allocator.lock().unwrap();
+            let mut allocator = context.allocator.lock().map_err(|_| vk::Result::NOT_READY)?;
             
             let allocation = allocator.allocate(&AllocationCreateDesc {
                 name,
