@@ -2,6 +2,7 @@ use std::sync::Mutex;
 
 use ash::vk;
 use gpu_allocator::vulkan::{Allocator, AllocatorCreateDesc};
+use log::*;
 use winit::{
     raw_window_handle::{HasDisplayHandle, HasWindowHandle},
     window::Window,
@@ -168,11 +169,23 @@ extern "system" fn vulkan_debug_callback(
     unsafe {
         let callback_data = *p_callback_data;
         let message = std::ffi::CStr::from_ptr(callback_data.p_message).to_string_lossy();
-
-        println!(
-            "[Vulkan] {:?} {:?}: {}",
-            message_severity, message_type, message
-        );
+        match message_severity {
+            vk::DebugUtilsMessageSeverityFlagsEXT::ERROR => {
+                error!("[Vulkan] ({:?}) {}", message_type, message);
+            }
+            vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => {
+                warn!("[Vulkan] ({:?}) {}", message_type, message);
+            }
+            vk::DebugUtilsMessageSeverityFlagsEXT::INFO => {
+                info!("[Vulkan] ({:?}) {}", message_type, message);
+            }
+            vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => {
+                debug!("[Vulkan] ({:?}) {}", message_type, message);
+            }
+            _ => {
+                info!("[Vulkan] ({:?}) {}", message_type, message);
+            }
+        };
     }
     vk::FALSE
 }
