@@ -2,12 +2,15 @@ use ash::vk;
 use gpu_allocator::MemoryLocation;
 use winit::{event_loop::ActiveEventLoop, window::Window};
 
-use crate::vulkan::{
-    buffer::Buffer,
-    camera::{Camera, CameraUniform},
-    context::VulkanContext,
-    pipeline::TestPipeline,
-    swapchain::{SurfaceSwapchain, SurfaceSync},
+use crate::{
+    core::world::WorldData,
+    vulkan::{
+        buffer::Buffer,
+        camera::{Camera, CameraUniform},
+        context::VulkanContext,
+        pipeline::TestPipeline,
+        swapchain::{SurfaceSwapchain, SurfaceSync},
+    },
 };
 
 #[allow(unused)]
@@ -22,6 +25,7 @@ pub struct VoxelEngine {
     pub command_buffers: Vec<vk::CommandBuffer>,
     pub camera: Camera,
     pub camera_buffer: Buffer,
+    pub world_buffer: Buffer,
 }
 
 impl VoxelEngine {
@@ -42,7 +46,7 @@ impl VoxelEngine {
             std::mem::size_of::<CameraUniform>() as u64,
             vk::BufferUsageFlags::UNIFORM_BUFFER,
             MemoryLocation::CpuToGpu,
-            "Camera buffer",
+            "Camera",
         )
         .expect("Camera buffer not created");
         let pipeline = TestPipeline::new(&vkcontext, &swapchain, &camera_buffer)
@@ -60,6 +64,7 @@ impl VoxelEngine {
                 .command_buffer_count(image_count as u32);
             vkcontext.device.allocate_command_buffers(&allocate_info)?
         };
+        let (_, world_buffer) = WorldData::new(&vkcontext)?;
         Ok(Self {
             frame: 0,
             window,
@@ -71,6 +76,7 @@ impl VoxelEngine {
             command_buffers,
             camera,
             camera_buffer,
+            world_buffer,
         })
     }
 
