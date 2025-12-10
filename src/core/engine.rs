@@ -45,7 +45,8 @@ impl VoxelEngine {
             "Camera buffer",
         )
         .expect("Camera buffer not created");
-        let pipeline = TestPipeline::new(&vkcontext, &swapchain, &camera_buffer).expect("Pipeline not created");
+        let pipeline = TestPipeline::new(&vkcontext, &swapchain, &camera_buffer)
+            .expect("Pipeline not created");
         let command_pool = unsafe {
             let create_info = vk::CommandPoolCreateInfo::default()
                 .queue_family_index(vkcontext.compute_queue_fi)
@@ -76,6 +77,18 @@ impl VoxelEngine {
     pub fn draw_frame(&mut self) -> Result<(), vk::Result> {
         let device = &self.vkcontext.device;
         let current_frame = self.sync.current_frame;
+
+        let ubo_data = self.camera.get_uniform();
+        unsafe {
+            if let Some(mapped_ptr) = self.camera_buffer.allocation.mapped_ptr() {
+                std::ptr::copy_nonoverlapping(
+                    &ubo_data as *const CameraUniform,
+                    mapped_ptr.as_ptr() as *mut CameraUniform,
+                    1,
+                );
+            }
+        }
+
         unsafe {
             device.wait_for_fences(&[self.sync.in_flight_fences[current_frame]], true, u64::MAX)?;
 
