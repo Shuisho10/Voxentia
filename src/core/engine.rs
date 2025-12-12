@@ -3,14 +3,13 @@ use gpu_allocator::MemoryLocation;
 use winit::{event_loop::ActiveEventLoop, window::Window};
 
 use crate::{
-    core::world::WorldData,
-    vulkan::{
+    core::world::ChunkedWorld, vulkan::{
         buffer::Buffer,
         camera::{Camera, CameraUniform},
         context::VulkanContext,
         pipeline::TestPipeline,
         swapchain::{SurfaceSwapchain, SurfaceSync},
-    },
+    }
 };
 
 #[allow(unused)]
@@ -25,7 +24,7 @@ pub struct VoxelEngine {
     pub command_buffers: Vec<vk::CommandBuffer>,
     pub camera: Camera,
     pub camera_buffer: Buffer,
-    pub world_buffer: Buffer,
+    pub world: ChunkedWorld,
 }
 
 impl VoxelEngine {
@@ -49,8 +48,8 @@ impl VoxelEngine {
             "Camera",
         )
         .expect("Camera buffer not created");
-        let (_, world_buffer) = WorldData::new(&vkcontext)?;
-        let pipeline = TestPipeline::new(&vkcontext, &swapchain, &camera_buffer, &world_buffer)
+        let world = ChunkedWorld::new(&vkcontext)?;
+        let pipeline = TestPipeline::new(&vkcontext, &swapchain, &camera_buffer, &world)
             .expect("Pipeline not created");
         let command_pool = unsafe {
             let create_info = vk::CommandPoolCreateInfo::default()
@@ -76,7 +75,7 @@ impl VoxelEngine {
             command_buffers,
             camera,
             camera_buffer,
-            world_buffer,
+            world,
         })
     }
 
@@ -177,7 +176,7 @@ impl VoxelEngine {
                 &self.vkcontext,
                 &self.swapchain,
                 &self.camera_buffer,
-                &self.world_buffer,
+                &self.world,
             );
         }
         Ok(())

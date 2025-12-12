@@ -9,9 +9,13 @@ layout(binding = 1) uniform Camera {
     vec4 position;
 } cam;
 
-layout(binding = 2, std430) readonly buffer VoxelBuffer {
-    uint data[]; 
-} voxels;
+layout(binding = 2, std430) readonly buffer DirectoryBuffer {
+    uint chunkIDs[]; 
+} directory;
+
+layout(binding = 3, std430) readonly buffer PoolBuffer {
+    uint voxels[];
+} pool;
 
 const int WORLD_SIZE = 64;
 
@@ -22,7 +26,7 @@ bool isSolid(ivec3 p) {
     }
     int index = p.x + (p.y * WORLD_SIZE) + (p.z * WORLD_SIZE * WORLD_SIZE);
     
-    return voxels.data[index] > 0;
+    return pool.voxels[index] > 0;
 }
 
 void main() {

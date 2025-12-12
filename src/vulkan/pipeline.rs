@@ -1,6 +1,9 @@
 use ash::vk;
 
-use crate::vulkan::{buffer::Buffer, context::VulkanContext, swapchain::SurfaceSwapchain};
+use crate::{
+    core::world::ChunkedWorld,
+    vulkan::{buffer::Buffer, context::VulkanContext, swapchain::SurfaceSwapchain},
+};
 
 #[allow(unused)]
 pub struct TestPipeline {
@@ -16,7 +19,7 @@ impl TestPipeline {
         context: &VulkanContext,
         swapchain: &SurfaceSwapchain,
         camera_buffer: &Buffer,
-        world_buffer: &Buffer,
+        world: &ChunkedWorld,
     ) -> Result<Self, vk::Result> {
         let descriptor_set_layout = unsafe {
             let bindings = [
@@ -32,6 +35,11 @@ impl TestPipeline {
                     .stage_flags(vk::ShaderStageFlags::COMPUTE),
                 vk::DescriptorSetLayoutBinding::default()
                     .binding(2)
+                    .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+                    .descriptor_count(1)
+                    .stage_flags(vk::ShaderStageFlags::COMPUTE),
+                vk::DescriptorSetLayoutBinding::default()
+                    .binding(3)
                     .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
                     .descriptor_count(1)
                     .stage_flags(vk::ShaderStageFlags::COMPUTE),
@@ -103,6 +111,10 @@ impl TestPipeline {
                     ty: vk::DescriptorType::STORAGE_BUFFER,
                     descriptor_count: image_len as u32,
                 },
+                vk::DescriptorPoolSize {
+                    ty: vk::DescriptorType::STORAGE_BUFFER,
+                    descriptor_count: image_len as u32,
+                },
             ];
 
             let create_info = vk::DescriptorPoolCreateInfo::default()
@@ -130,7 +142,7 @@ impl TestPipeline {
             descriptor_sets,
         };
 
-        test_pipeline.update_descriptors(context, swapchain, camera_buffer, world_buffer);
+        test_pipeline.update_descriptors(context, swapchain, camera_buffer, world);
 
         Ok(test_pipeline)
     }
@@ -140,7 +152,7 @@ impl TestPipeline {
         context: &VulkanContext,
         swapchain: &SurfaceSwapchain,
         camera_buffer: &Buffer,
-        world_buffer: &Buffer,
+        world: &ChunkedWorld,
     ) {
         for (i, descriptor_set) in self
             .descriptor_sets
@@ -170,20 +182,32 @@ impl TestPipeline {
                 .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
                 .buffer_info(&camera_buffer_info);
 
-            let world_buffer_info = [vk::DescriptorBufferInfo::default()
-                .buffer(world_buffer.buffer)
+            let dir_info = [vk::DescriptorBufferInfo::default()
+                .buffer(world.dir_buffer.buffer)
                 .offset(0)
                 .range(vk::WHOLE_SIZE)];
-            let write_world = vk::WriteDescriptorSet::default()
+            let write_dir = vk::WriteDescriptorSet::default()
                 .dst_set(*descriptor_set)
                 .dst_binding(2)
                 .descriptor_count(1)
                 .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
-                .buffer_info(&world_buffer_info);
+                .buffer_info(&dir_info);
+
+
+            let pool_info = [vk::DescriptorBufferInfo::default()
+                .buffer(world.pool_buffer.buffer)
+                .offset(0)
+                .range(vk::WHOLE_SIZE)];
+            let write_pool = vk::WriteDescriptorSet::default()
+                .dst_set(*descriptor_set)
+                .dst_binding(3)
+                .descriptor_count(1)
+                .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+                .buffer_info(&pool_info);
             unsafe {
                 context
                     .device
-                    .update_descriptor_sets(&[write_image, write_camera, write_world], &[]);
+                    .update_descriptor_sets(&[write_image, write_camera, write_dir, write_pool], &[]);
             }
         }
     }

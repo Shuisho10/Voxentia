@@ -25,13 +25,13 @@ pub struct Camera {
 impl Camera {
     pub fn new(aspect: f32) -> Self {
         let mut cam = Self {
-            position: Point3::new(8.0, 8.0, 18.0),
+            position: Point3::new(528.0, 528.0, 450.0),
             forward: Vector3::zeros(),
             up: Vector3::y(),
             right: Vector3::zeros(),
             aspect,
             fov: 70.0_f32.to_radians(),
-            yaw: -90.0_f32.to_radians(),
+            yaw: -180.0_f32.to_radians(),
             pitch: 0.0,
         };
         cam.update_vectors();

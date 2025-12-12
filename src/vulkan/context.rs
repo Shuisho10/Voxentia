@@ -107,10 +107,10 @@ impl VulkanContext {
                 })
                 .ok_or(vk::Result::ERROR_DEVICE_LOST)?
         };
-        let mut bda_features = vk::PhysicalDeviceBufferDeviceAddressFeatures::default()
-            .buffer_device_address(true)
-            .buffer_device_address_capture_replay(false)
-            .buffer_device_address_multi_device(false);
+        let mut features12 = vk::PhysicalDeviceVulkan12Features::default()
+            .buffer_device_address(true);
+        let mut features = vk::PhysicalDeviceFeatures2::default()
+            .push_next(&mut features12);
 
         let device = unsafe {
             let queue_priorities = [1.0];
@@ -121,7 +121,7 @@ impl VulkanContext {
             let create_info = vk::DeviceCreateInfo::default()
                 .queue_create_infos(&queue_infos)
                 .enabled_extension_names(&extensions)
-                .push_next(&mut bda_features);
+                .push_next(&mut features);
             instance.create_device(physical_device, &create_info, None)
         }?;
         let debug_utils = ash::ext::debug_utils::Device::new(&instance, &device);

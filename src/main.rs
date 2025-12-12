@@ -1,4 +1,4 @@
-use nalgebra::Vector3;
+use log::*;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
@@ -23,21 +23,31 @@ impl ApplicationHandler for App {
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
         match event {
             WindowEvent::CloseRequested => {
-                println!("The close button was pressed; stopping");
+                info!("The close button was pressed; stopping");
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
-                self.engine.as_mut().unwrap().draw_frame().expect("Unable to draw frame");
+                self.engine
+                    .as_mut()
+                    .unwrap()
+                    .draw_frame()
+                    .expect("Unable to draw frame");
                 self.engine.as_ref().unwrap().window.request_redraw();
-            },
+            }
             WindowEvent::Resized(physical_size) => {
-                if physical_size.width == 0 || physical_size.height == 0 {return;}
+                if physical_size.width == 0 || physical_size.height == 0 {
+                    return;
+                }
                 if let Some(engine) = self.engine.as_mut() {
-                    engine.rebuild_swapchain(physical_size.width, physical_size.height).expect("Unable to recreate swapchain");
-                    engine.camera.update_aspect(physical_size.width, physical_size.height);
+                    engine
+                        .rebuild_swapchain(physical_size.width, physical_size.height)
+                        .expect("Unable to recreate swapchain");
+                    engine
+                        .camera
+                        .update_aspect(physical_size.width, physical_size.height);
                 }
                 self.engine.as_ref().unwrap().window.request_redraw();
-            },
+            }
             _ => (),
         }
     }
@@ -45,8 +55,7 @@ impl ApplicationHandler for App {
 
 fn main() {
     let event_loop = EventLoop::new().unwrap();
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
-        .init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     event_loop.set_control_flow(ControlFlow::Poll);
     let mut app = App::default();
     let _ = event_loop.run_app(&mut app);
