@@ -33,7 +33,7 @@ impl InputState {
 impl App {
     pub fn handle_input(&mut self) {
         if let Some(engine) = self.engine.as_mut() {
-            let speed = 20.0;
+            let speed = 2.0;
             let mut dir = Vector3::zeros();
 
             if self.input.is_key_down(KeyCode::KeyW) {
@@ -94,6 +94,7 @@ impl ApplicationHandler for App {
                     .unwrap()
                     .draw_frame()
                     .expect("Unable to draw frame");
+                info!("camera pos: {:?}",self.engine.as_ref().unwrap().camera.position);
                 self.engine.as_ref().unwrap().window.request_redraw();
             }
             WindowEvent::Resized(physical_size) => {

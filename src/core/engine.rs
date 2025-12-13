@@ -4,11 +4,7 @@ use winit::{event_loop::ActiveEventLoop, window::Window};
 
 use crate::{
     core::world::ChunkedWorld, vulkan::{
-        buffer::Buffer,
-        camera::{Camera, CameraUniform},
-        context::VulkanContext,
-        pipeline::TestPipeline,
-        swapchain::{SurfaceSwapchain, SurfaceSync},
+        buffer::Buffer, camera::{Camera, CameraUniform}, context::VulkanContext, pipelines::raytrace::TestPipeline, swapchain::{SurfaceSwapchain, SurfaceSync}
     }
 };
 

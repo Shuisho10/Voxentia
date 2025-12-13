@@ -65,7 +65,7 @@ impl TestPipeline {
         };
 
         let shader_module = unsafe {
-            let code = include_bytes!("shaders/raytrace.spv");
+            let code = include_bytes!("../shaders/raytrace.spv");
             let code_u32 = ash::util::read_spv(&mut std::io::Cursor::new(&code))
                 .expect("raytrace.spv counld't be read properly");
 

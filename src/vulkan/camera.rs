@@ -25,7 +25,7 @@ pub struct Camera {
 impl Camera {
     pub fn new(aspect: f32) -> Self {
         let mut cam = Self {
-            position: Point3::new(528.0, 528.0, 450.0),
+            position: Point3::new(528.0, 28.0, 45.0),
             forward: Vector3::zeros(),
             up: Vector3::y(),
             right: Vector3::zeros(),
